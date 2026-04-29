@@ -1,0 +1,78 @@
+name: api-deploy-template
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        required: true
+        type: string
+      ec2-instance-id:
+        required: true
+        type: string
+      aws-region:
+        required: true
+        type: string
+
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true        
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.204'
+
+      - name: Restore
+        run: dotnet restore ./app/HelloWorldApi.sln
+
+      - name: Build
+        run: dotnet build ./app/HelloWorldApi.sln --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish ./app/src/HelloWorldApi/HelloWorldApi.csproj -c Release -o ./publish
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Zip artifact
+        run: |
+          cd publish
+          zip -r ../artifact.zip .
+
+      - name: Upload to S3
+        run: aws s3 cp artifact.zip s3://my-api-artifacts-dev-ba7ca241/${{ inputs.app-name }}/artifact.zip
+
+      - name: Deploy via SSM (retry-safe)
+        run: |
+          echo "Deploying via SSM..."
+
+          for i in {1..5}; do
+            echo "Attempt $i to send SSM command..."
+
+            aws ssm send-command \
+              --instance-ids ${{ inputs.ec2-instance-id }} \
+              --document-name "AWS-RunPowerShellScript" \
+              --parameters 'commands=[
+                "if (!(Test-Path C:\\Temp)) { New-Item -ItemType Directory -Path C:\\Temp }",
+                "aws s3 cp s3://my-api-artifacts-dev-ba7ca241/${{ inputs.app-name }}/artifact.zip C:\\Temp\\artifact.zip",
+                "Expand-Archive -Path C:\\Temp\\artifact.zip -DestinationPath C:\\inetpub\\wwwroot\\HelloWorldApi -Force",
+                "Restart-Service W3SVC"
+              ]' && break
+
+            echo "SSM not ready yet, retrying in 10 seconds..."
+            sleep 10
+          done
