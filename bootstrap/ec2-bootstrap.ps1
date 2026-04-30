@@ -5,15 +5,11 @@ Start-Transcript -Path "C:\bootstrap.log" -Append
 Write-Output "=== BOOTSTRAP STARTED ==="
 
 try {
-    # =========================
     # Wait for Windows to finish first-boot setup
-    # =========================
     Write-Output "Waiting for Windows initialization..."
     Start-Sleep -Seconds 30
 
-    # =========================
     # Install IIS (reliable method for WS2022 on EC2)
-    # =========================
     Write-Output "Installing IIS using DISM..."
 
     # Force DISM to use local payload (fixes missing W3SVC)
@@ -33,16 +29,12 @@ try {
     Write-Output "Starting W3SVC..."
     Start-Service W3SVC -ErrorAction Stop
 
-    # =========================
     # App folder
-    # =========================
     $appPath = "C:\inetpub\wwwroot\HelloWorldApi"
     New-Item -ItemType Directory -Path $appPath -Force | Out-Null
     Write-Output "App folder created at $appPath"
 
-    # =========================
     # .NET Hosting Bundle
-    # =========================
     Write-Output "Installing .NET Hosting Bundle..."
 
     New-Item -ItemType Directory -Path "C:\Temp" -Force | Out-Null
@@ -55,9 +47,7 @@ try {
 
     Write-Output ".NET Hosting Bundle installed"
 
-    # =========================
     # SSM Parameter (optional)
-    # =========================
     try {
         Write-Output "Attempting to load SSM parameter..."
 
