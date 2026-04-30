@@ -15,16 +15,19 @@ resource "aws_instance" "api_server" {
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
-  # ✅ ADD THIS
   key_name = "my-ec2-keypair"
+
+  user_data_replace_on_change = true
 
   root_block_device {
     volume_size = 50
     volume_type = "gp3"
   }
 
-  user_data = base64encode(templatefile("${path.module}/../bootstrap/ec2-bootstrap.ps1", {
-    db_connection_param_name = var.db_connection_param_name
-    aws_region               = var.aws_region
-  }))
+  user_data = <<EOF
+  <powershell>
+  ${file("${path.module}/../bootstrap/ec2-bootstrap.ps1")}
+  </powershell>
+  EOF
+
 }
