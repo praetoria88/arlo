@@ -14,10 +14,7 @@ This repository contains a complete implementation of the assessment requirement
 ### 1. Infrastructure
 cd infra
 terraform init
-terraform apply -var="aws_region=ap-southeast-2" \
--var="db_username=admin" \
--var="db_password=YourPassword123!" \
--var="db_connection_param_name=/myapp/db/connectionstring"
+terraform apply -var="db_username=admin" -var="db_password=YourPassword123!" -var="db_connection_param_name=/myapp/db/connectionstring"
 
 
 ### 2. Application

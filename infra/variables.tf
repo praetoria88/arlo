@@ -5,18 +5,15 @@ variable "aws_region" {
 
 variable "db_username" {
   type = string
-  default = "admin"
 }
 
 variable "db_password" {
   type      = string
   sensitive = true
-  default = "YourPassword123!"
 }
 
 variable "db_connection_param_name" {
   type = string
-  default = "/myapp/db/connectionstring"
 }
 
 variable "bucket_prefix" {
